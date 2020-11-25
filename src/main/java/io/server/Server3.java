@@ -34,7 +34,7 @@ public class Server3 {
         //3.注册ServerSocketChannel,监听连接事件
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        System.out.println("服务器启动成功");
+        System.out.println("服务端启动成功");
 
         while (true) {
             int readyCount = selector.select(timeout);
@@ -57,32 +57,38 @@ public class Server3 {
         }
     }
 
-    public void handleAccept(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
-        //1.
+    /*
+     * @description: 处理客户端的连接
+     */
+    private void handleAccept(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
         SocketChannel socketChannel = serverSocketChannel.accept();
-        //2.
         socketChannel.configureBlocking(false);
-        //3.
         socketChannel.register(selector, SelectionKey.OP_READ);
-        System.out.println("连接成功:" + socketChannel.getRemoteAddress());
+        System.out.println("收到新连接: " + socketChannel.toString());
     }
 
-    public void handleRead(Selector selector, SelectionKey selectionKey) throws IOException {
+    /*
+     * @description: 处理客户端发送来的消息
+     */
+    private void handleRead(Selector selector, SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-        String result = "";
+        StringBuilder result = new StringBuilder();
         while (socketChannel.read(buffer) > 0) {
             buffer.flip();
-            result += Charset.forName(charset).decode(buffer);
+            result.append(Charset.forName(charset).decode(buffer));
             buffer.compact();
         }
         socketChannel.register(selector, SelectionKey.OP_READ);
         if (result.length() > 0) {
-            System.out.println("收到消息:" + result);
-            broadcast(selector, socketChannel, result);
+            System.out.println("收到消息: " + result);
+            broadcast(selector, socketChannel, result.toString());
         }
     }
 
+    /*
+     * @description: 广播消息给其他客户端
+     */
     private void broadcast(Selector selector, SocketChannel sourceChannel, String message) {
         Set<SelectionKey> selectionKeys = selector.keys();
         selectionKeys.forEach(selectionKey -> {
